@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { DayStats } from '@/types/habit';
 import { 
   getLast365Days, 
@@ -33,7 +33,26 @@ interface GlobalHeatmapProps {
 
 export function GlobalHeatmap({ dayStats, onDayClick, selectedDate }: GlobalHeatmapProps) {
   const dates = useMemo(() => getLast365Days(), []);
-  const weeks = useMemo(() => getWeeksArray(dates), [dates]);
+  
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check initial screen size and listen for resize events
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const weeks = useMemo(() => {
+    const allWeeks = getWeeksArray(dates);
+    if (isMobile) {
+      // 16 tygodni to około niecałe 4 miesiące - akurat bez scrolla dla rzutów pionowych (smartfon),
+      const RECENT_WEEKS_LIMIT = 16;
+      return allWeeks.slice(Math.max(0, allWeeks.length - RECENT_WEEKS_LIMIT));
+    }
+    return allWeeks;
+  }, [dates, isMobile]);
 
   const dayLabels = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So'];
 
@@ -60,7 +79,7 @@ export function GlobalHeatmap({ dayStats, onDayClick, selectedDate }: GlobalHeat
   }, [weeks]);
 
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="w-full overflow-x-auto pb-4 custom-scrollbar flex justify-center md:block">
       <div className="inline-block min-w-max">
         {/* Month labels - positioned above grid */}
         <div className="flex mb-2 ml-8 text-xs" style={{ color: '#8b949e' }}>
@@ -81,7 +100,7 @@ export function GlobalHeatmap({ dayStats, onDayClick, selectedDate }: GlobalHeat
               <div 
                 key={day} 
                 className="h-[11px] leading-[11px]"
-                style={{ visibility: idx % 2 === 1 ? 'visible' : 'hidden' }}
+                style={{ visibility: 'visible', fontSize: '10px' }}
               >
                 {day}
               </div>
@@ -183,7 +202,7 @@ export function HabitHeatmap({ completedDates, onDayClick, createdAt }: HabitHea
   }, [weeks]);
 
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="w-full overflow-x-auto pb-4 custom-scrollbar flex justify-center md:block">
       <div className="inline-block min-w-max">
         {/* Month labels - positioned above grid */}
         <div className="flex mb-2 ml-8 text-xs" style={{ color: '#8b949e' }}>
@@ -204,7 +223,7 @@ export function HabitHeatmap({ completedDates, onDayClick, createdAt }: HabitHea
               <div 
                 key={day} 
                 className="h-[11px] leading-[11px]"
-                style={{ visibility: idx % 2 === 1 ? 'visible' : 'hidden' }}
+                style={{ visibility: 'visible', fontSize: '10px' }}
               >
                 {day}
               </div>

@@ -62,7 +62,7 @@ export default function Home() {
     <div className="min-h-screen" style={{ backgroundColor: '#0d1117' }}>
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <header className="mb-8 flex items-start justify-between">
+        <header className="mb-8 flex flex-row items-center justify-between gap-4">
           <div>
             <h1 
               className="text-2xl font-semibold mb-1"
@@ -70,19 +70,21 @@ export default function Home() {
             >
               Habit Tracker
             </h1>
-            <p style={{ color: '#8b949e' }}>
+            <p className="text-sm" style={{ color: '#8b949e' }}>
               {user 
                 ? `Zalogowany jako ${user.displayName || user.email?.split('@')[0]}`
                 : 'Śledź swoje codzienne nawyki i buduj dobre przyzwyczajenia'
               }
             </p>
           </div>
-          <AuthButton />
+          <div className="flex-shrink-0">
+            <AuthButton />
+          </div>
         </header>
 
         {/* Global Heatmap Section */}
         <section 
-          className="mb-6 p-4 rounded-md"
+          className="mb-6 p-4 rounded-md overflow-hidden"
           style={{ 
             backgroundColor: '#161b22',
             border: '1px solid #30363d',
@@ -95,7 +97,7 @@ export default function Home() {
             Mapa aktywności
           </h2>
           <p className="text-sm mb-4" style={{ color: '#8b949e' }}>
-            Kolor dnia zależy od procentu wykonanych nawyków. Kliknij dzień, aby zobaczyć szczegóły.
+            Kolor dnia zależy od procentu wykonanych nawyków. Przesuń w lewo/prawo.
           </p>
           <GlobalHeatmap
             dayStats={dayStats}
@@ -112,41 +114,45 @@ export default function Home() {
             border: '1px solid #30363d',
           }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
             <h2 
               className="text-base font-semibold"
               style={{ color: '#e6edf3' }}
             >
               Twoje nawyki
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {isLoading && (
                 <span className="text-sm" style={{ color: '#8b949e' }}>
                   Zapisywanie...
                 </span>
               )}
-              <button
-                onClick={() => {
-                  if (confirm('Czy załadować przykładowe dane? To nadpisze obecne nawyki.')) {
-                    loadSampleData();
-                  }
-                }}
-                disabled={isLoading}
-                className="px-3 py-1.5 rounded-md text-sm transition-colors disabled:opacity-50"
-                style={{ 
-                  color: '#8b949e',
-                  border: '1px solid #30363d',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#8b949e';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#30363d';
-                }}
-              >
-                Załaduj demo
-              </button>
-              <AddHabitForm onAdd={addHabit} />
+              {!user && (
+                <button
+                  onClick={() => {
+                    if (confirm('Czy załadować przykładowe dane? To nadpisze obecne nawyki.')) {
+                      loadSampleData();
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="px-3 py-1.5 rounded-md text-sm transition-colors disabled:opacity-50 flex-shrink-0"
+                  style={{ 
+                    color: '#8b949e',
+                    border: '1px solid #30363d',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#8b949e';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#30363d';
+                  }}
+                >
+                  Załaduj demo
+                </button>
+              )}
+              <div className="w-full sm:w-auto mt-2 sm:mt-0">
+                <AddHabitForm onAdd={addHabit} />
+              </div>
             </div>
           </div>
           <HabitList

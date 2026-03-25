@@ -31,6 +31,11 @@ export const firestoreStorage = {
     });
   },
 
+  updateHabitName: async (userId: string, habitId: string, name: string): Promise<void> => {
+    const habitRef = doc(db, 'users', userId, HABITS_COLLECTION, habitId);
+    await setDoc(habitRef, { name }, { merge: true });
+  },
+
   removeHabit: async (userId: string, habitId: string): Promise<void> => {
     // Delete habit
     const habitRef = doc(db, 'users', userId, HABITS_COLLECTION, habitId);

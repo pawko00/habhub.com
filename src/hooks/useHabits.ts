@@ -78,6 +78,16 @@ export function useHabits() {
     setCompletions(prev => prev.filter(c => c.habitId !== habitId));
   }, [user]);
 
+  const updateHabitName = useCallback(async (habitId: string, name: string) => {
+    if (user) {
+      await firestoreStorage.updateHabitName(user.uid, habitId, name);
+    } else {
+      storage.updateHabitName(habitId, name);
+    }
+    
+    setHabits(prev => prev.map(h => h.id === habitId ? { ...h, name } : h));
+  }, [user]);
+
   const toggleCompletion = useCallback(async (habitId: string, date: string) => {
     let isNowCompleted: boolean;
 
@@ -170,6 +180,7 @@ export function useHabits() {
     isLoading,
     addHabit,
     removeHabit,
+    updateHabitName,
     toggleCompletion,
     isCompleted,
     getHabitWithStats,

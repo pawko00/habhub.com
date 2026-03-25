@@ -40,6 +40,15 @@ export const storage = {
     storage.saveCompletions(completions);
   },
 
+  updateHabitName: (habitId: string, name: string): void => {
+    const habits = storage.getHabits();
+    const habitIndex = habits.findIndex(h => h.id === habitId);
+    if (habitIndex >= 0) {
+      habits[habitIndex].name = name;
+      storage.saveHabits(habits);
+    }
+  },
+
   toggleCompletion: (habitId: string, date: string): boolean => {
     const completions = storage.getCompletions();
     const existingIndex = completions.findIndex(

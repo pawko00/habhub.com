@@ -4,7 +4,10 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 function mapAuthError(code: string): string {
-  if (code === 'auth/unauthorized-domain') return 'Domena nie jest autoryzowana w Firebase. Dodaj localhost w Authentication -> Settings -> Authorized domains.';
+  if (code === 'auth/unauthorized-domain') {
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'twoja-domena';
+    return `Domena nie jest autoryzowana w Firebase. Dodaj ${host} w Authentication -> Settings -> Authorized domains.`;
+  }
   if (code === 'auth/operation-not-allowed') return 'Provider logowania nie jest włączony w Firebase (Google lub Email/Password).';
   if (code === 'auth/invalid-api-key') return 'Nieprawidłowy klucz API Firebase w pliku .env.local.';
   if (code === 'auth/popup-closed-by-user') return 'Okno logowania zostało zamknięte przed zakończeniem.';
