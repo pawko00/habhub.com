@@ -1,8 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* GitHub Dark Theme Colors */
+  --gh-bg-default: #0d1117;
+  --gh-bg-secondary: #161b22;
+  --gh-bg-tertiary: #21262d;
+  --gh-border: #30363d;
+  --gh-border-muted: #21262d;
+  --gh-text-primary: #e6edf3;
+  --gh-text-secondary: #8b949e;
+  --gh-text-muted: #6e7681;
+  --gh-accent: #238636;
+  --gh-accent-emphasis: #2ea043;
+  --gh-link: #58a6ff;
+  --gh-danger: #f85149;
+  
+  /* GitHub Contribution Colors */
+  --gh-contrib-0: #161b22;
+  --gh-contrib-1: #0e4429;
+  --gh-contrib-2: #006d32;
+  --gh-contrib-3: #26a641;
+  --gh-contrib-4: #39d353;
+  
+  --background: var(--gh-bg-default);
+  --foreground: var(--gh-text-primary);
 }
 
 @theme inline {
@@ -12,15 +33,27 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--gh-bg-default);
+  color: var(--gh-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom scrollbar for GitHub look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gh-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gh-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gh-text-muted);
 }
