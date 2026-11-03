@@ -1,7 +1,11 @@
 import { DayStats, Habit, HabitCompletion } from '@/types/habit';
 
+// Data w lokalnej strefie czasowej (toISOString() zwraca UTC i przesuwa dzień po północy)
 export function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function parseDate(dateStr: string): Date {
@@ -65,54 +69,46 @@ export function getWeeksArray(dates: string[]): string[][] {
   return weeks;
 }
 
-export function calculateStreak(completedDates: string[], fromDate?: Date): number {
+export function calculateStreak(completedDates: string[], fromDate: Date = new Date()): number {
   if (completedDates.length === 0) return 0;
-  
-  const sortedDates = [...completedDates].sort().reverse();
-  const today = formatDate(fromDate || new Date());
-  const yesterday = formatDate(new Date(Date.now() - 86400000));
-  
-  // Check if the streak is current (includes today or yesterday)
-  if (!sortedDates.includes(today) && !sortedDates.includes(yesterday)) {
-    return 0;
+
+  const done = new Set(completedDates);
+  const cursor = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+
+  // Streak jest aktualny, jeśli obejmuje dziś albo wczoraj (dzisiaj można jeszcze odhaczyć)
+  if (!done.has(formatDate(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
   }
-  
+
   let streak = 0;
-  let currentDate = sortedDates.includes(today) ? new Date() : new Date(Date.now() - 86400000);
-  
-  while (true) {
-    const dateStr = formatDate(currentDate);
-    if (sortedDates.includes(dateStr)) {
-      streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
-    } else {
-      break;
-    }
+  while (done.has(formatDate(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
   }
-  
+
   return streak;
 }
 
 export function calculateLongestStreak(completedDates: string[]): number {
   if (completedDates.length === 0) return 0;
-  
-  const sortedDates = [...completedDates].sort();
+
+  const sortedDates = [...new Set(completedDates)].sort();
   let longestStreak = 1;
   let currentStreak = 1;
-  
+
   for (let i = 1; i < sortedDates.length; i++) {
     const prevDate = parseDate(sortedDates[i - 1]);
     const currDate = parseDate(sortedDates[i]);
     const diffDays = Math.round((currDate.getTime() - prevDate.getTime()) / 86400000);
-    
+
     if (diffDays === 1) {
       currentStreak++;
       longestStreak = Math.max(longestStreak, currentStreak);
-    } else if (diffDays > 1) {
+    } else {
       currentStreak = 1;
     }
   }
-  
+
   return longestStreak;
 }
 
@@ -153,7 +149,10 @@ export function getColorForCompletion(completed: boolean): string {
 }
 
 export function generateId(): string {
-  return Math.random().toString(36).substring(2, 15) + 
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 15) +
          Math.random().toString(36).substring(2, 15);
 }
 

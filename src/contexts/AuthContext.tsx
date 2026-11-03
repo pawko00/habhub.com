@@ -4,12 +4,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import {
   User,
   signInWithPopup,
-  signInWithRedirect,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  AuthError,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 
@@ -37,25 +35,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  // Tylko popup: signInWithRedirect nie działa, gdy authDomain (firebaseapp.com)
+  // różni się od domeny aplikacji, bo przeglądarki blokują dostęp do storage innej domeny.
+  // Popup musi zostać otwarty synchronicznie w handlerze kliknięcia.
   const signInWithGoogle = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      const authError = error as AuthError;
-      if (authError.code === 'auth/popup-blocked' || authError.code === 'auth/cancelled-popup-request') {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-      throw error;
-    }
+    await signInWithPopup(auth, googleProvider);
   };
 
   const signInWithEmail = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    await signInWithEmailAndPassword(auth, email.trim(), password);
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    await createUserWithEmailAndPassword(auth, email.trim(), password);
   };
 
   const signOut = async () => {

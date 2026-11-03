@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Habit } from '@/types/habit';
-import { calculateStreak, formatDate } from '@/lib/utils';
+import { calculateStreak, formatDate, parseDate } from '@/lib/utils';
 
 interface HabitListProps {
   habits: Habit[];
@@ -60,6 +60,8 @@ export function HabitList({ habits, completions, onRemove, onToggleToday }: Habi
                 border: isCompletedToday ? '2px solid #238636' : '2px solid #30363d',
               }}
               title={isCompletedToday ? 'Odznacz na dziś' : 'Oznacz na dziś'}
+              aria-label={isCompletedToday ? `Odznacz "${habit.name}" na dziś` : `Oznacz "${habit.name}" na dziś`}
+              aria-pressed={isCompletedToday}
             >
               {isCompletedToday && (
                 <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" strokeWidth={3}>
@@ -81,7 +83,7 @@ export function HabitList({ habits, completions, onRemove, onToggleToday }: Habi
                   {habit.name}
                 </h3>
                 <p className="text-sm" style={{ color: '#8b949e' }}>
-                  od {new Date(habit.createdAt).toLocaleDateString('pl-PL')}
+                  od {parseDate(habit.createdAt).toLocaleDateString('pl-PL')}
                 </p>
               </div>
               
@@ -129,6 +131,7 @@ export function HabitList({ habits, completions, onRemove, onToggleToday }: Habi
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
               title="Usuń nawyk"
+              aria-label={`Usuń nawyk "${habit.name}"`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 

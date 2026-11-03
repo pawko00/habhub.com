@@ -1,9 +1,11 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { useHabits } from '@/hooks/useHabits';
 import { HabitHeatmap } from '@/components/Heatmap';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { parseDate } from '@/lib/utils';
 import Link from 'next/link';
 
 export default function HabitDetailPage() {
@@ -16,6 +18,8 @@ export default function HabitDetailPage() {
 
   const {
     isLoaded,
+    error,
+    clearError,
     getHabitWithStats,
     toggleCompletion,
     removeHabit,
@@ -27,28 +31,28 @@ export default function HabitDetailPage() {
     [isLoaded, getHabitWithStats, habitId]
   );
 
-  useEffect(() => {
-    if (habitWithStats && !isEditing) {
-      setEditedName(habitWithStats.name);
-    }
-  }, [habitWithStats, isEditing]);
-
   const handleDayClick = (date: string) => {
     toggleCompletion(habitId, date);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (habitWithStats && confirm(`Czy na pewno chcesz usunąć nawyk "${habitWithStats.name}"?`)) {
-      removeHabit(habitId);
-      router.push('/');
+      const ok = await removeHabit(habitId);
+      if (ok) router.push('/');
     }
   };
 
+  const startEditing = () => {
+    setEditedName(habitWithStats?.name ?? '');
+    setIsEditing(true);
+  };
+
   const handleSaveName = async () => {
-    if (editedName.trim() && editedName !== habitWithStats?.name) {
-      await updateHabitName(habitId, editedName.trim());
-    }
+    const name = editedName.trim();
     setIsEditing(false);
+    if (name && name !== habitWithStats?.name) {
+      await updateHabitName(habitId, name);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -117,10 +121,12 @@ export default function HabitDetailPage() {
           Powrót
         </Link>
 
+        <ErrorBanner message={error} onClose={clearError} />
+
         {/* Header */}
         <header className="mb-6">
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
               {isEditing ? (
                 <div className="flex items-center gap-2 mb-1">
                   <input
@@ -128,7 +134,9 @@ export default function HabitDetailPage() {
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="px-2 py-1 text-2xl font-semibold rounded-md outline-none"
+                    maxLength={100}
+                    aria-label="Nazwa nawyku"
+                    className="min-w-0 w-full px-2 py-1 text-xl sm:text-2xl font-semibold rounded-md outline-none"
                     style={{ 
                       backgroundColor: '#0d1117',
                       color: '#e6edf3',
@@ -170,10 +178,11 @@ export default function HabitDetailPage() {
                     {habitWithStats.name}
                   </h1>
                   <button
-                    onClick={() => setIsEditing(true)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-opacity"
+                    onClick={startEditing}
+                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 p-1 rounded-md transition-opacity"
                     style={{ color: '#8b949e' }}
                     title="Edytuj nazwę"
+                    aria-label="Edytuj nazwę"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -182,7 +191,7 @@ export default function HabitDetailPage() {
                 </div>
               )}
               <p style={{ color: '#8b949e' }}>
-                od {new Date(habitWithStats.createdAt).toLocaleDateString('pl-PL', {
+                od {parseDate(habitWithStats.createdAt).toLocaleDateString('pl-PL', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
@@ -191,7 +200,7 @@ export default function HabitDetailPage() {
             </div>
             <button
               onClick={handleDelete}
-              className="px-3 py-1.5 text-sm rounded-md transition-colors"
+              className="flex-shrink-0 px-3 py-1.5 text-sm rounded-md transition-colors"
               style={{ 
                 color: '#f85149',
                 border: '1px solid #30363d',

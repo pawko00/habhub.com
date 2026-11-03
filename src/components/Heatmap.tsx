@@ -96,7 +96,7 @@ export function GlobalHeatmap({ dayStats, onDayClick, selectedDate }: GlobalHeat
         <div className="flex">
           {/* Day labels */}
           <div className="flex flex-col mr-2 text-xs" style={{ color: '#8b949e', gap: '3px' }}>
-            {dayLabels.map((day, idx) => (
+            {dayLabels.map((day) => (
               <div 
                 key={day} 
                 className="h-[11px] leading-[11px]"
@@ -219,7 +219,7 @@ export function HabitHeatmap({ completedDates, onDayClick, createdAt }: HabitHea
         <div className="flex">
           {/* Day labels */}
           <div className="flex flex-col mr-2 text-xs" style={{ color: '#8b949e', gap: '3px' }}>
-            {dayLabels.map((day, idx) => (
+            {dayLabels.map((day) => (
               <div 
                 key={day} 
                 className="h-[11px] leading-[11px]"
