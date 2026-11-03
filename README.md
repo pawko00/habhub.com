@@ -21,11 +21,18 @@ npm run dev
    npx firebase-tools deploy --only firestore:rules
    ```
 
-4. Na Vercelu ustaw te same zmienne `NEXT_PUBLIC_FIREBASE_*` co w `.env.local`.
+4. Na Vercelu ustaw te same zmienne `NEXT_PUBLIC_FIREBASE_*` co w `.env.local`,
+   ale `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` ustaw na domenę aplikacji (np. `habhub-com.vercel.app`).
+5. W Google Cloud Console → APIs & Services → Credentials → OAuth client „Web client (auto created
+   by Google Service)” dodaj do **Authorized redirect URIs**: `https://<domena-aplikacji>/__/auth/handler`.
 
-Logowanie Google działa wyłącznie przez popup. `signInWithRedirect` celowo nie jest używany:
-przy `authDomain` na `*.firebaseapp.com` i aplikacji na innej domenie przeglądarki (Safari, Firefox,
-Chrome) blokują dostęp do storage i logowanie po przekierowaniu cicho się nie udaje.
+### Jak działa logowanie Google
+
+`next.config.ts` przepuszcza `/__/auth/*` do `<projekt>.firebaseapp.com`, więc handler logowania
+działa na domenie aplikacji. Gdy `authDomain` to domena aplikacji, na telefonach używany jest
+`signInWithRedirect` (popupy są tam często blokowane), a na komputerach popup z fallbackiem na redirect.
+Gdy `authDomain` to `*.firebaseapp.com` (np. lokalnie), działa tylko popup: przeglądarki blokują
+storage innej domeny i redirect cicho by się nie udał.
 
 ## Struktura danych
 

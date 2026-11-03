@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getRedirectResult } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSilentAuthError, mapAuthError } from '@/lib/errors';
 
@@ -116,6 +118,16 @@ export function LoginPage() {
   useEffect(() => {
     if (user) router.replace('/');
   }, [user, router]);
+
+  // Błąd logowania przez redirect pojawia się dopiero po powrocie na tę stronę
+  useEffect(() => {
+    getRedirectResult(auth).catch((err) => {
+      if (!isSilentAuthError(err)) {
+        console.error('Google redirect sign in failed:', err);
+        setError(mapAuthError(err));
+      }
+    });
+  }, []);
 
   const handleGoogle = async () => {
     setError('');
