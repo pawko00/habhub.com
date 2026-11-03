@@ -8,15 +8,18 @@ import { AddHabitForm } from '@/components/AddHabitForm';
 import { HabitList } from '@/components/HabitList';
 import { DayDetail } from '@/components/DayDetail';
 import { AuthButton } from '@/components/Auth';
+import { ErrorBanner } from '@/components/ErrorBanner';
 import { formatDate } from '@/lib/utils';
 
 export default function Home() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const {
     habits,
     completions,
     isLoaded,
     isLoading,
+    error,
+    clearError,
     addHabit,
     removeHabit,
     toggleCompletion,
@@ -45,7 +48,7 @@ export default function Home() {
     toggleCompletion(habitId, formatDate(new Date()));
   };
 
-  if (authLoading || !isLoaded) {
+  if (!isLoaded) {
     return (
       <div 
         className="min-h-screen flex items-center justify-center"
@@ -81,6 +84,8 @@ export default function Home() {
             <AuthButton />
           </div>
         </header>
+
+        <ErrorBanner message={error} onClose={clearError} />
 
         {/* Global Heatmap Section */}
         <section 

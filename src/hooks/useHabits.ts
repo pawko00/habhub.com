@@ -1,54 +1,103 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Habit, HabitCompletion, HabitWithStats, DayStats } from '@/types/habit';
 import { storage } from '@/lib/storage';
 import { firestoreStorage } from '@/lib/firestore-storage';
+import { mapDataError } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  formatDate, 
-  calculateStreak, 
-  calculateLongestStreak, 
+import {
+  formatDate,
+  calculateStreak,
+  calculateLongestStreak,
   calculateDayStats,
   generateId,
   getLast365Days
 } from '@/lib/utils';
 
+// Klucz źródła danych: uid zalogowanego użytkownika albo 'local'
+type SourceKey = string;
+
 export function useHabits() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const sourceKey: SourceKey | null = authLoading ? null : user ? user.uid : 'local';
+
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadedKey, setLoadedKey] = useState<SourceKey | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  // Aktualne wykonania dla handlerów, bez przebudowywania callbacków przy każdej zmianie
+  const completionsRef = useRef(completions);
+  useEffect(() => {
+    completionsRef.current = completions;
+  }, [completions]);
+
+  // Kliknięcia w trakcie zapisu tego samego dnia są ignorowane (podwójny klik)
+  const pendingToggles = useRef(new Set<string>());
+
+  const isLoaded = sourceKey !== null && loadedKey === sourceKey;
 
   // Load data based on auth state
   useEffect(() => {
+    if (sourceKey === null) return;
+    let cancelled = false;
+
     const loadData = async () => {
-      setIsLoading(true);
+      let nextHabits: Habit[] = [];
+      let nextCompletions: HabitCompletion[] = [];
+      let nextError: string | null = null;
+
       try {
-        if (user) {
-          // Load from Firestore
-          const [firestoreHabits, firestoreCompletions] = await Promise.all([
-            firestoreStorage.getHabits(user.uid),
-            firestoreStorage.getCompletions(user.uid),
-          ]);
-          setHabits(firestoreHabits);
-          setCompletions(firestoreCompletions);
+        if (sourceKey === 'local') {
+          nextHabits = storage.getHabits();
+          nextCompletions = storage.getCompletions();
         } else {
-          // Load from localStorage
-          setHabits(storage.getHabits());
-          setCompletions(storage.getCompletions());
+          [nextHabits, nextCompletions] = await Promise.all([
+            firestoreStorage.getHabits(sourceKey),
+            firestoreStorage.getCompletions(sourceKey),
+          ]);
         }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
-        setIsLoaded(true);
+      } catch (err) {
+        console.error('Error loading data:', err);
+        nextError = mapDataError(err);
       }
+
+      // Użytkownik zdążył się przelogować - ignorujemy nieaktualną odpowiedź
+      if (cancelled) return;
+      setHabits(nextHabits);
+      setCompletions(nextCompletions);
+      setError(nextError);
+      setLoadedKey(sourceKey);
     };
 
-    loadData();
-  }, [user]);
+    // Odkładamy start na mikrozadanie, żeby nie wywoływać setState synchronicznie w efekcie
+    Promise.resolve().then(loadData);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceKey]);
+
+  // Wspólna obsługa zapisu: licznik "Zapisywanie...", przechwycenie błędu, rollback
+  const persist = useCallback(async (
+    write: () => Promise<void> | void,
+    rollback?: () => void
+  ): Promise<boolean> => {
+    setPendingCount(n => n + 1);
+    try {
+      await write();
+      return true;
+    } catch (err) {
+      console.error('Error saving data:', err);
+      rollback?.();
+      setError(mapDataError(err));
+      return false;
+    } finally {
+      setPendingCount(n => n - 1);
+    }
+  }, []);
 
   const addHabit = useCallback(async (name: string) => {
     const newHabit: Habit = {
@@ -57,56 +106,70 @@ export function useHabits() {
       createdAt: formatDate(new Date()),
     };
 
-    if (user) {
-      await firestoreStorage.addHabit(user.uid, newHabit);
-    } else {
-      storage.addHabit(newHabit);
-    }
-    
     setHabits(prev => [...prev, newHabit]);
-    return newHabit;
-  }, [user]);
+    const ok = await persist(
+      () => (user ? firestoreStorage.addHabit(user.uid, newHabit) : storage.addHabit(newHabit)),
+      () => setHabits(prev => prev.filter(h => h.id !== newHabit.id))
+    );
+    return ok ? newHabit : null;
+  }, [user, persist]);
 
   const removeHabit = useCallback(async (habitId: string) => {
-    if (user) {
-      await firestoreStorage.removeHabit(user.uid, habitId);
-    } else {
-      storage.removeHabit(habitId);
+    const ok = await persist(() =>
+      user ? firestoreStorage.removeHabit(user.uid, habitId) : storage.removeHabit(habitId)
+    );
+    if (ok) {
+      setHabits(prev => prev.filter(h => h.id !== habitId));
+      setCompletions(prev => prev.filter(c => c.habitId !== habitId));
     }
-    
-    setHabits(prev => prev.filter(h => h.id !== habitId));
-    setCompletions(prev => prev.filter(c => c.habitId !== habitId));
-  }, [user]);
+    return ok;
+  }, [user, persist]);
 
   const updateHabitName = useCallback(async (habitId: string, name: string) => {
-    if (user) {
-      await firestoreStorage.updateHabitName(user.uid, habitId, name);
-    } else {
-      storage.updateHabitName(habitId, name);
-    }
-    
-    setHabits(prev => prev.map(h => h.id === habitId ? { ...h, name } : h));
-  }, [user]);
+    let previousName: string | undefined;
+    setHabits(prev => prev.map(h => {
+      if (h.id !== habitId) return h;
+      previousName = h.name;
+      return { ...h, name };
+    }));
+
+    return persist(
+      () => (user
+        ? firestoreStorage.updateHabitName(user.uid, habitId, name)
+        : storage.updateHabitName(habitId, name)),
+      () => setHabits(prev => prev.map(h =>
+        h.id === habitId && previousName !== undefined ? { ...h, name: previousName } : h
+      ))
+    );
+  }, [user, persist]);
 
   const toggleCompletion = useCallback(async (habitId: string, date: string) => {
-    let isNowCompleted: boolean;
+    const key = `${habitId}_${date}`;
+    if (pendingToggles.current.has(key)) return;
+    pendingToggles.current.add(key);
 
-    if (user) {
-      isNowCompleted = await firestoreStorage.toggleCompletion(user.uid, habitId, date);
-    } else {
-      isNowCompleted = storage.toggleCompletion(habitId, date);
-    }
-    
-    setCompletions(prev => {
-      if (isNowCompleted) {
-        return [...prev, { habitId, date }];
-      } else {
-        return prev.filter(c => !(c.habitId === habitId && c.date === date));
-      }
+    const wasCompleted = completionsRef.current.some(
+      c => c.habitId === habitId && c.date === date
+    );
+    const completed = !wasCompleted;
+
+    const apply = (value: boolean) => setCompletions(prev => {
+      const others = prev.filter(c => !(c.habitId === habitId && c.date === date));
+      return value ? [...others, { habitId, date }] : others;
     });
-    
-    return isNowCompleted;
-  }, [user]);
+
+    apply(completed);
+    try {
+      await persist(
+        () => (user
+          ? firestoreStorage.setCompletion(user.uid, habitId, date, completed)
+          : storage.setCompletion(habitId, date, completed)),
+        () => apply(wasCompleted)
+      );
+    } finally {
+      pendingToggles.current.delete(key);
+    }
+  }, [user, persist]);
 
   const isCompleted = useCallback((habitId: string, date: string): boolean => {
     return completions.some(c => c.habitId === habitId && c.date === date);
@@ -135,49 +198,42 @@ export function useHabits() {
   const getAllDayStats = useCallback((): Map<string, DayStats> => {
     const dates = getLast365Days();
     const statsMap = new Map<string, DayStats>();
-    
+
     for (const date of dates) {
       statsMap.set(date, calculateDayStats(date, habits, completions));
     }
-    
+
     return statsMap;
   }, [habits, completions]);
 
   const getHabitsForDate = useCallback((date: string): { habit: Habit; completed: boolean }[] => {
     const activeHabits = habits.filter(h => h.createdAt <= date);
-    
+
     return activeHabits.map(habit => ({
       habit,
       completed: completions.some(c => c.habitId === habit.id && c.date === date),
     }));
   }, [habits, completions]);
 
+  // Demo tylko dla danych lokalnych - nie nadpisujemy danych w chmurze
   const loadSampleData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      if (user) {
-        await firestoreStorage.seedSampleData(user.uid);
-        const [firestoreHabits, firestoreCompletions] = await Promise.all([
-          firestoreStorage.getHabits(user.uid),
-          firestoreStorage.getCompletions(user.uid),
-        ]);
-        setHabits(firestoreHabits);
-        setCompletions(firestoreCompletions);
-      } else {
-        storage.seedSampleData();
-        setHabits(storage.getHabits());
-        setCompletions(storage.getCompletions());
-      }
-    } finally {
-      setIsLoading(false);
+    if (user) return;
+    const ok = await persist(() => storage.seedSampleData());
+    if (ok) {
+      setHabits(storage.getHabits());
+      setCompletions(storage.getCompletions());
     }
-  }, [user]);
+  }, [user, persist]);
+
+  const clearError = useCallback(() => setError(null), []);
 
   return {
     habits,
     completions,
     isLoaded,
-    isLoading,
+    isLoading: pendingCount > 0,
+    error,
+    clearError,
     addHabit,
     removeHabit,
     updateHabitName,

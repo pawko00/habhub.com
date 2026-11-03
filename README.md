@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Habit Tracker
 
-## Getting Started
+Śledzenie nawyków z mapą aktywności w stylu GitHuba. Next.js + Firebase (Auth + Firestore).
+Bez logowania dane trzymane są w `localStorage`, po zalogowaniu w Firestore.
 
-First, run the development server:
+## Uruchomienie
 
 ```bash
+cp .env.example .env.local   # uzupełnij danymi z Firebase Console
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Konfiguracja Firebase
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Authentication → Sign-in method**: włącz Google oraz Email/Password.
+2. **Authentication → Settings → Authorized domains**: dodaj każdą domenę, na której działa aplikacja (np. domenę z Vercela).
+3. **Firestore**: utwórz bazę i wgraj reguły z `firestore.rules`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npx firebase-tools deploy --only firestore:rules
+   ```
 
-## Learn More
+4. Na Vercelu ustaw te same zmienne `NEXT_PUBLIC_FIREBASE_*` co w `.env.local`.
 
-To learn more about Next.js, take a look at the following resources:
+Logowanie Google działa wyłącznie przez popup. `signInWithRedirect` celowo nie jest używany:
+przy `authDomain` na `*.firebaseapp.com` i aplikacji na innej domenie przeglądarki (Safari, Firefox,
+Chrome) blokują dostęp do storage i logowanie po przekierowaniu cicho się nie udaje.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Struktura danych
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+users/{uid}/habits/{habitId}                 { name, createdAt }
+users/{uid}/completions/{habitId}_{date}     { habitId, date }
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Daty to `YYYY-MM-DD` w lokalnej strefie czasowej użytkownika.

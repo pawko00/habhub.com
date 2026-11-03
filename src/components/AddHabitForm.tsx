@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 interface AddHabitFormProps {
-  onAdd: (name: string) => void;
+  onAdd: (name: string) => unknown;
 }
 
 export function AddHabitForm({ onAdd }: AddHabitFormProps) {
@@ -50,8 +50,10 @@ export function AddHabitForm({ onAdd }: AddHabitFormProps) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nazwa nawyku..."
+        maxLength={100}
+        aria-label="Nazwa nawyku"
         autoFocus
-        className="flex-1 px-3 py-1.5 rounded-md text-sm outline-none"
+        className="flex-1 min-w-0 px-3 py-1.5 rounded-md text-sm outline-none"
         style={{
           backgroundColor: '#0d1117',
           border: '1px solid #30363d',
