@@ -4,12 +4,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import {
   User,
   signInWithPopup,
+  signInWithRedirect,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/errors';
 
 interface AuthContextType {
   user: User | null;
@@ -35,11 +37,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // Tylko popup: signInWithRedirect nie działa, gdy authDomain (firebaseapp.com)
-  // różni się od domeny aplikacji, bo przeglądarki blokują dostęp do storage innej domeny.
-  // Popup musi zostać otwarty synchronicznie w handlerze kliknięcia.
+  // Redirect działa tylko, gdy authDomain to domena aplikacji (proxy /__/auth w next.config.ts).
+  // Przy authDomain na *.firebaseapp.com przeglądarki blokują storage innej domeny
+  // i logowanie po przekierowaniu cicho się nie udaje - wtedy zostaje sam popup.
   const signInWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider);
+    const canRedirect = auth.config.authDomain === window.location.host;
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+    // Na telefonach popupy są często blokowane lub otwierane jako nowa karta - od razu redirect
+    if (canRedirect && isTouchDevice) {
+      await signInWithRedirect(auth, googleProvider);
+      return;
+    }
+
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      if (canRedirect && getErrorCode(error) === 'auth/popup-blocked') {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      throw error;
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
