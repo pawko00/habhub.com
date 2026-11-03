@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
+import { CheckIcon, XIcon } from '@primer/octicons-react';
 import { Habit } from '@/types/habit';
-import { formatDate } from '@/lib/utils';
+import { formatDate, parseDate } from '@/lib/utils';
+import { getHabitColor } from '@/lib/habit-colors';
 
 interface DayDetailProps {
   date: string;
@@ -11,138 +14,92 @@ interface DayDetailProps {
 }
 
 export function DayDetail({ date, habits, onToggle, onClose }: DayDetailProps) {
-  const dateObj = new Date(date + 'T00:00:00');
-  const formattedDate = dateObj.toLocaleDateString('pl-PL', {
+  const formattedDate = parseDate(date).toLocaleDateString('pl-PL', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   });
 
   const completedCount = habits.filter(h => h.completed).length;
   const totalCount = habits.length;
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
   const isFuture = date > formatDate(new Date());
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   return (
-    <div 
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-4"
       onClick={onClose}
     >
-      <div 
-        className="rounded-md shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden"
-        style={{ 
-          backgroundColor: '#161b22',
-          border: '1px solid #30363d',
-        }}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="day-detail-title"
+        className="max-h-[85vh] w-full overflow-hidden rounded-t-xl border border-line bg-canvas-subtle shadow-2xl shadow-black/50 sm:max-w-md sm:rounded-md"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div 
-          className="p-4"
-          style={{ borderBottom: '1px solid #21262d' }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 
-                className="text-base font-semibold capitalize"
-                style={{ color: '#e6edf3' }}
-              >
-                {formattedDate}
-              </h2>
-              <p className="text-sm" style={{ color: '#8b949e' }}>
-                {completedCount}/{totalCount} nawyków ({percentage}%)
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-md transition-colors"
-              style={{ color: '#8b949e' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#21262d';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
+          <div>
+            <h2 id="day-detail-title" className="font-semibold text-fg first-letter:uppercase">{formattedDate}</h2>
+            <p className="mt-0.5 text-sm text-fg-muted">
+              {totalCount > 0
+                ? <><span className="font-mono">{completedCount}/{totalCount}</span> wykonanych ({percentage}%)</>
+                : 'Brak nawyków w tym dniu'}
+            </p>
           </div>
-          
-          {/* Progress bar */}
-          <div 
-            className="mt-3 h-2 rounded-full overflow-hidden"
-            style={{ backgroundColor: '#21262d' }}
+          <button
+            onClick={onClose}
+            aria-label="Zamknij"
+            className="rounded-md p-1.5 text-fg-muted hover:bg-canvas-overlay hover:text-fg"
           >
-            <div 
-              className="h-full transition-all duration-300"
-              style={{ 
-                width: `${percentage}%`,
-                backgroundColor: '#238636',
-              }}
-            />
-          </div>
+            <XIcon size={16} />
+          </button>
         </div>
 
-        {/* Habits list */}
-        <div className="p-4 overflow-y-auto max-h-[60vh]">
+        {totalCount > 0 && (
+          <div className="h-1 bg-canvas-overlay">
+            <div className="h-full bg-success-emphasis transition-all duration-300" style={{ width: `${percentage}%` }} />
+          </div>
+        )}
+
+        <div className="max-h-[60vh] overflow-y-auto">
           {habits.length === 0 ? (
-            <p className="text-center py-8" style={{ color: '#8b949e' }}>
-              Brak aktywnych nawyków w tym dniu
+            <p className="px-4 py-8 text-center text-sm text-fg-muted">
+              Żaden nawyk nie istniał jeszcze tego dnia.
             </p>
           ) : (
-            <div className="space-y-2">
+            <ul>
               {habits.map(({ habit, completed }) => (
-                <button
-                  key={habit.id}
-                  onClick={() => !isFuture && onToggle(habit.id, date)}
-                  disabled={isFuture}
-                  className="w-full flex items-center gap-3 p-3 rounded-md transition-colors"
-                  style={{
-                    backgroundColor: completed ? 'rgba(35, 134, 54, 0.15)' : '#0d1117',
-                    border: completed ? '1px solid #238636' : '1px solid #30363d',
-                    opacity: isFuture ? 0.5 : 1,
-                    cursor: isFuture ? 'not-allowed' : 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isFuture) {
-                      e.currentTarget.style.borderColor = '#8b949e';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = completed ? '#238636' : '#30363d';
-                  }}
-                >
-                  <div 
-                    className="w-5 h-5 rounded flex items-center justify-center"
-                    style={{
-                      backgroundColor: completed ? '#238636' : 'transparent',
-                      border: completed ? '2px solid #238636' : '2px solid #30363d',
-                    }}
+                <li key={habit.id} className="border-b border-line-muted last:border-b-0">
+                  <button
+                    onClick={() => onToggle(habit.id, date)}
+                    disabled={isFuture}
+                    aria-pressed={completed}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-canvas-overlay/50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {completed && (
-                      <svg className="w-3 h-3" fill="none" stroke="white" viewBox="0 0 24 24" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  <span 
-                    className="flex-1 text-left font-medium"
-                    style={{ color: completed ? '#3fb950' : '#e6edf3' }}
-                  >
-                    {habit.name}
-                  </span>
-                </button>
+                    <span
+                      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border ${
+                        completed ? 'border-success-emphasis bg-success-emphasis text-white' : 'border-line'
+                      }`}
+                    >
+                      {completed && <CheckIcon size={14} />}
+                    </span>
+                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: getHabitColor(habit) }} />
+                    <span className={`flex-1 truncate ${completed ? 'text-fg' : 'text-fg-default'}`}>{habit.name}</span>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
 
           {isFuture && (
-            <p className="mt-4 text-center text-sm" style={{ color: '#8b949e' }}>
+            <p className="border-t border-line-muted px-4 py-3 text-center text-xs text-fg-muted">
               Nie można oznaczać nawyków w przyszłości
             </p>
           )}

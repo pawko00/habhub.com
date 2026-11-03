@@ -1,146 +1,157 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Habit } from '@/types/habit';
+import { CheckIcon, ChevronRightIcon, FlameIcon, PlusIcon } from '@primer/octicons-react';
+import { Habit, HabitCompletion } from '@/types/habit';
 import { calculateStreak, formatDate, parseDate } from '@/lib/utils';
+import { getHabitColor, HABIT_COLORS } from '@/lib/habit-colors';
+import { AddHabitForm } from '@/components/AddHabitForm';
 
 interface HabitListProps {
   habits: Habit[];
-  completions: { habitId: string; date: string }[];
-  onRemove: (habitId: string) => void;
+  completions: HabitCompletion[];
+  isSaving: boolean;
+  onAdd: (name: string, color: string) => unknown;
   onToggleToday: (habitId: string) => void;
+  onLoadDemo?: () => void;
 }
 
-export function HabitList({ habits, completions, onRemove, onToggleToday }: HabitListProps) {
-  const today = formatDate(new Date());
+function getLastDays(count: number): string[] {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) =>
+    formatDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (count - 1 - i)))
+  );
+}
 
-  if (habits.length === 0) {
-    return (
-      <div className="text-center py-12" style={{ color: '#8b949e' }}>
-        <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-        <p className="text-lg">Brak nawyków</p>
-        <p className="text-sm mt-1">Dodaj swój pierwszy nawyk, aby rozpocząć śledzenie!</p>
-      </div>
-    );
-  }
+export function HabitList({ habits, completions, isSaving, onAdd, onToggleToday, onLoadDemo }: HabitListProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const lastWeek = useMemo(() => getLastDays(7), []);
+  const today = lastWeek[lastWeek.length - 1];
+
+  const completedByHabit = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const c of completions) {
+      if (!map.has(c.habitId)) map.set(c.habitId, new Set());
+      map.get(c.habitId)!.add(c.date);
+    }
+    return map;
+  }, [completions]);
+
+  // Domyślnie pierwszy kolor, którego jeszcze nie ma na liście
+  const nextColor = useMemo(() => {
+    const used = new Set(habits.map(getHabitColor));
+    return HABIT_COLORS.find(c => !used.has(c.value))?.value ?? HABIT_COLORS[0].value;
+  }, [habits]);
 
   return (
-    <div className="space-y-2">
-      {habits.map((habit) => {
-        const habitCompletions = completions
-          .filter(c => c.habitId === habit.id)
-          .map(c => c.date);
-        const streak = calculateStreak(habitCompletions);
-        const isCompletedToday = habitCompletions.includes(today);
-
-        return (
-          <div
-            key={habit.id}
-            className="flex items-center gap-3 p-4 rounded-md transition-colors"
-            style={{ 
-              backgroundColor: '#161b22',
-              border: '1px solid #30363d',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#8b949e';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#30363d';
-            }}
+    <section className="rounded-md border border-line">
+      <div className="flex items-center justify-between gap-3 rounded-t-md bg-canvas-subtle px-4 py-2.5">
+        <h2 className="text-sm font-semibold text-fg">Twoje nawyki</h2>
+        <div className="flex items-center gap-2">
+          {isSaving && <span className="text-xs text-fg-muted">Zapisywanie…</span>}
+          {onLoadDemo && (
+            <button
+              type="button"
+              onClick={onLoadDemo}
+              className="rounded-md px-2 py-1 text-xs text-fg-muted hover:bg-canvas-overlay hover:text-fg-default"
+            >
+              Demo
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsAdding(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-success-emphasis px-3 py-1 text-sm font-medium text-white hover:bg-success-hover"
           >
-            {/* Today's checkbox */}
-            <button
-              onClick={() => onToggleToday(habit.id)}
-              className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all"
-              style={{
-                backgroundColor: isCompletedToday ? '#238636' : 'transparent',
-                border: isCompletedToday ? '2px solid #238636' : '2px solid #30363d',
-              }}
-              title={isCompletedToday ? 'Odznacz na dziś' : 'Oznacz na dziś'}
-              aria-label={isCompletedToday ? `Odznacz "${habit.name}" na dziś` : `Oznacz "${habit.name}" na dziś`}
-              aria-pressed={isCompletedToday}
-            >
-              {isCompletedToday && (
-                <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </button>
+            <PlusIcon size={16} />
+            <span className="hidden sm:inline">Nowy nawyk</span>
+            <span className="sr-only sm:hidden">Nowy nawyk</span>
+          </button>
+        </div>
+      </div>
 
-            {/* Habit info */}
-            <Link 
-              href={`/habit/${habit.id}`}
-              className="flex-1 flex items-center gap-3 min-w-0"
-            >
-              <div className="flex-1 min-w-0">
-                <h3 
-                  className="font-medium truncate"
-                  style={{ color: '#e6edf3' }}
+      {isAdding && (
+        <AddHabitForm initialColor={nextColor} onAdd={onAdd} onCancel={() => setIsAdding(false)} />
+      )}
+
+      {habits.length === 0 && !isAdding ? (
+        <div className="border-t border-line-muted px-4 py-12 text-center">
+          <p className="text-fg">Zacznij od pierwszego nawyku</p>
+          <p className="mt-1 text-sm text-fg-muted">
+            Codziennie odhaczaj wykonanie i patrz, jak mapa się zieleni.
+          </p>
+        </div>
+      ) : (
+        <ul>
+          {habits.map(habit => {
+            const done = completedByHabit.get(habit.id) ?? new Set<string>();
+            const streak = calculateStreak([...done]);
+            const isDoneToday = done.has(today);
+
+            return (
+              <li key={habit.id} className="flex items-center gap-3 border-t border-line-muted px-4 py-3 hover:bg-canvas-subtle/60">
+                <button
+                  type="button"
+                  onClick={() => onToggleToday(habit.id)}
+                  aria-pressed={isDoneToday}
+                  aria-label={isDoneToday ? `Odznacz „${habit.name}” na dziś` : `Oznacz „${habit.name}” na dziś`}
+                  title={isDoneToday ? 'Odznacz na dziś' : 'Oznacz na dziś'}
+                  className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors ${
+                    isDoneToday
+                      ? 'border-success-emphasis bg-success-emphasis text-white'
+                      : 'border-line hover:border-fg-muted'
+                  }`}
                 >
-                  {habit.name}
-                </h3>
-                <p className="text-sm" style={{ color: '#8b949e' }}>
-                  od {parseDate(habit.createdAt).toLocaleDateString('pl-PL')}
-                </p>
-              </div>
-              
-              {/* Streak badge */}
-              {streak > 0 && (
-                <div 
-                  className="flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium"
-                  style={{ 
-                    backgroundColor: 'rgba(187, 128, 9, 0.15)',
-                    color: '#d29922',
-                  }}
-                >
-                  <span>🔥</span>
-                  <span>{streak}</span>
-                </div>
-              )}
+                  {isDoneToday && <CheckIcon size={14} />}
+                </button>
 
-              {/* Arrow icon */}
-              <svg 
-                className="w-4 h-4 flex-shrink-0" 
-                fill="none" 
-                stroke="#8b949e" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+                <Link href={`/habit/${habit.id}`} className="group flex min-w-0 flex-1 items-center gap-3">
+                  <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: getHabitColor(habit) }} />
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="text-fg group-hover:text-accent group-hover:underline">{habit.name}</span>
+                    <span className="ml-2 hidden text-xs text-fg-muted sm:inline">
+                      od {parseDate(habit.createdAt).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </span>
 
-            {/* Delete button */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                if (confirm(`Czy na pewno chcesz usunąć nawyk "${habit.name}"?`)) {
-                  onRemove(habit.id);
-                }
-              }}
-              className="flex-shrink-0 p-2 rounded-md transition-colors"
-              style={{ color: '#8b949e' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#f85149';
-                e.currentTarget.style.backgroundColor = 'rgba(248, 81, 73, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#8b949e';
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              title="Usuń nawyk"
-              aria-label={`Usuń nawyk "${habit.name}"`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          </div>
-        );
-      })}
-    </div>
+                  <span className="hidden gap-[3px] sm:flex" aria-hidden="true">
+                    {lastWeek.map(date => {
+                      const inactive = date < habit.createdAt;
+                      const isDone = done.has(date);
+                      return (
+                        <span
+                          key={date}
+                          className={`h-2.5 w-2.5 rounded-[2px] ${
+                            inactive
+                              ? 'bg-canvas'
+                              : isDone
+                                ? 'bg-contrib-3'
+                                : 'bg-contrib-0 outline outline-1 -outline-offset-1 outline-line-muted'
+                          }`}
+                        />
+                      );
+                    })}
+                  </span>
+
+                  <span
+                    className="flex w-11 flex-shrink-0 items-center justify-end gap-1 font-mono text-xs text-fg-muted"
+                    title={streak > 0 ? `Seria: ${streak} dni z rzędu` : undefined}
+                  >
+                    {streak > 0 && (
+                      <>
+                        <FlameIcon size={14} className="text-attention" />
+                        {streak}
+                      </>
+                    )}
+                  </span>
+                  <ChevronRightIcon size={16} className="flex-shrink-0 text-fg-subtle group-hover:text-fg-muted" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

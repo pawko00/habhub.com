@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Habit, HabitCompletion, HabitWithStats, DayStats } from '@/types/habit';
+import { Habit, HabitCompletion, HabitPatch, HabitWithStats, DayStats } from '@/types/habit';
 import { storage } from '@/lib/storage';
 import { firestoreStorage } from '@/lib/firestore-storage';
 import { mapDataError } from '@/lib/errors';
@@ -99,11 +99,12 @@ export function useHabits() {
     }
   }, []);
 
-  const addHabit = useCallback(async (name: string) => {
+  const addHabit = useCallback(async (name: string, color?: string) => {
     const newHabit: Habit = {
       id: generateId(),
       name,
       createdAt: formatDate(new Date()),
+      ...(color ? { color } : {}),
     };
 
     setHabits(prev => [...prev, newHabit]);
@@ -125,23 +126,17 @@ export function useHabits() {
     return ok;
   }, [user, persist]);
 
-  const updateHabitName = useCallback(async (habitId: string, name: string) => {
-    let previousName: string | undefined;
-    setHabits(prev => prev.map(h => {
-      if (h.id !== habitId) return h;
-      previousName = h.name;
-      return { ...h, name };
-    }));
+  const updateHabit = useCallback(async (habitId: string, patch: HabitPatch) => {
+    const previous = habits.find(h => h.id === habitId);
+    setHabits(prev => prev.map(h => (h.id === habitId ? { ...h, ...patch } : h)));
 
     return persist(
       () => (user
-        ? firestoreStorage.updateHabitName(user.uid, habitId, name)
-        : storage.updateHabitName(habitId, name)),
-      () => setHabits(prev => prev.map(h =>
-        h.id === habitId && previousName !== undefined ? { ...h, name: previousName } : h
-      ))
+        ? firestoreStorage.updateHabit(user.uid, habitId, patch)
+        : storage.updateHabit(habitId, patch)),
+      () => setHabits(prev => prev.map(h => (h.id === habitId && previous ? previous : h)))
     );
-  }, [user, persist]);
+  }, [user, habits, persist]);
 
   const toggleCompletion = useCallback(async (habitId: string, date: string) => {
     const key = `${habitId}_${date}`;
@@ -236,7 +231,7 @@ export function useHabits() {
     clearError,
     addHabit,
     removeHabit,
-    updateHabitName,
+    updateHabit,
     toggleCompletion,
     isCompleted,
     getHabitWithStats,

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getRedirectResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { CheckboxIcon, SignOutIcon } from '@primer/octicons-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSilentAuthError, mapAuthError } from '@/lib/errors';
 
@@ -39,7 +40,7 @@ export function AuthButton() {
     return (
       <Link
         href="/login"
-        className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] rounded-md transition-colors text-sm text-[#c9d1d9]"
+        className="rounded-md border border-line px-3 py-1 text-sm text-fg-default hover:border-fg-muted hover:text-fg"
       >
         Zaloguj się
       </Link>
@@ -50,40 +51,36 @@ export function AuthButton() {
     <div className="relative">
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-[#21262d] transition-colors"
+        className="flex items-center rounded-full"
         aria-haspopup="menu"
         aria-expanded={showDropdown}
+        aria-label="Menu konta"
       >
         {user.photoURL ? (
           // eslint-disable-next-line @next/next/no-img-element -- zewnętrzny avatar Google, next/image wymagałby konfiguracji domen
           <img
             src={user.photoURL}
-            alt="Avatar"
+            alt=""
             referrerPolicy="no-referrer"
-            className="w-6 h-6 rounded-full"
+            className="h-7 w-7 rounded-full border border-line"
           />
         ) : (
-          <div className="w-6 h-6 rounded-full bg-[#238636] flex items-center justify-center text-xs font-medium text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-emphasis text-xs font-medium text-white">
             {user.email?.[0]?.toUpperCase() || 'U'}
-          </div>
+          </span>
         )}
-        <span className="text-sm text-[#c9d1d9] hidden sm:inline">
-          {user.displayName || user.email?.split('@')[0]}
-        </span>
       </button>
 
       {showDropdown && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setShowDropdown(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
           <div
             role="menu"
-            className="absolute right-0 mt-2 w-48 bg-[#161b22] border border-[#30363d] rounded-md shadow-lg z-20"
+            className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-md border border-line bg-canvas-subtle shadow-xl shadow-black/40"
           >
-            <div className="px-4 py-2 border-b border-[#30363d]">
-              <p className="text-sm text-[#c9d1d9] truncate">{user.email}</p>
+            <div className="border-b border-line px-4 py-2.5">
+              <p className="text-xs text-fg-muted">Zalogowano jako</p>
+              <p className="truncate text-sm font-semibold text-fg">{user.displayName || user.email}</p>
             </div>
             <button
               role="menuitem"
@@ -95,8 +92,9 @@ export function AuthButton() {
                   console.error('Sign out failed:', err);
                 }
               }}
-              className="w-full text-left px-4 py-2 text-sm text-[#f85149] hover:bg-[#21262d] transition-colors"
+              className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-fg-default hover:bg-accent-emphasis hover:text-white"
             >
+              <SignOutIcon size={16} />
               Wyloguj się
             </button>
           </div>
@@ -165,43 +163,44 @@ export function LoginPage() {
 
   if (authLoading || user) {
     return (
-      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-        <div className="animate-pulse text-[#8b949e]">Ładowanie...</div>
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="animate-pulse text-sm text-fg-muted">Ładowanie…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#c9d1d9] mb-2">Habit Tracker</h1>
-          <p className="text-[#8b949e]">Śledź swoje nawyki jak na GitHubie</p>
+    <div className="flex min-h-screen justify-center bg-canvas px-4 pt-12 pb-8 sm:pt-20">
+      <div className="w-full max-w-[340px]">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <Link href="/" className="text-fg" aria-label="Strona główna">
+            <CheckboxIcon size={48} />
+          </Link>
+          <h1 className="mt-5 text-2xl font-light text-fg">
+            {isSignUp ? 'Załóż konto w habhub' : 'Zaloguj się do habhub'}
+          </h1>
         </div>
 
-        <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-6">
+        <div className="rounded-md border border-line bg-canvas-subtle p-4">
           <button
             type="button"
             onClick={handleGoogle}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] rounded-md transition-colors mb-6 disabled:opacity-50"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-line bg-canvas-overlay px-4 py-1.5 text-sm font-medium text-fg-default transition-colors hover:border-fg-subtle disabled:opacity-50"
           >
-            <GoogleIcon className="w-5 h-5" />
-            <span className="text-[#c9d1d9] font-medium">Kontynuuj z Google</span>
+            <GoogleIcon className="h-4 w-4" />
+            Kontynuuj z Google
           </button>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#30363d]"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-[#161b22] text-[#8b949e]">lub</span>
-            </div>
+          <div className="mb-4 flex items-center gap-3 text-xs text-fg-muted">
+            <span className="h-px flex-1 bg-line" />
+            lub
+            <span className="h-px flex-1 bg-line" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm text-[#c9d1d9] mb-1.5">
+              <label htmlFor="email" className="mb-1.5 block text-sm text-fg">
                 Email
               </label>
               <input
@@ -211,12 +210,12 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-md text-[#c9d1d9] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
+                className="w-full rounded-md border border-line bg-canvas px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm text-[#c9d1d9] mb-1.5">
+              <label htmlFor="password" className="mb-1.5 block text-sm text-fg">
                 Hasło
               </label>
               <input
@@ -227,24 +226,26 @@ export function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-md text-[#c9d1d9] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
+                className="w-full rounded-md border border-line bg-canvas px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
             </div>
 
             {error && (
-              <p role="alert" className="text-sm text-[#f85149]">{error}</p>
+              <p role="alert" className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#238636] hover:bg-[#2ea043] text-white font-medium rounded-md transition-colors disabled:opacity-50"
+              className="w-full rounded-md border border-white/10 bg-success-emphasis py-1.5 text-sm font-medium text-white transition-colors hover:bg-success-hover disabled:opacity-50"
             >
-              {loading ? 'Ładowanie...' : isSignUp ? 'Zarejestruj się' : 'Zaloguj się'}
+              {loading ? 'Ładowanie…' : isSignUp ? 'Zarejestruj się' : 'Zaloguj się'}
             </button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-[#8b949e]">
+        </div>
+
+        <p className="mt-4 rounded-md border border-line p-4 text-center text-sm text-fg-default">
             {isSignUp ? 'Masz już konto?' : 'Nie masz konta?'}{' '}
             <button
               type="button"
@@ -252,16 +253,15 @@ export function LoginPage() {
                 setIsSignUp(!isSignUp);
                 setError('');
               }}
-              className="text-[#58a6ff] hover:underline"
+              className="text-accent hover:underline"
             >
-              {isSignUp ? 'Zaloguj się' : 'Zarejestruj się'}
+              {isSignUp ? 'Zaloguj się' : 'Załóż konto'}
             </button>
-          </p>
-        </div>
+        </p>
 
-        <p className="mt-6 text-center text-xs text-[#8b949e]">
+        <p className="mt-6 text-center text-xs text-fg-muted">
           Możesz też{' '}
-          <Link href="/" className="text-[#58a6ff] hover:underline">
+          <Link href="/" className="text-accent hover:underline">
             kontynuować bez logowania
           </Link>
           {' '}(dane lokalne)

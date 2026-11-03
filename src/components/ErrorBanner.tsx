@@ -1,5 +1,7 @@
 'use client';
 
+import { AlertIcon, XIcon } from '@primer/octicons-react';
+
 interface ErrorBannerProps {
   message: string | null;
   onClose: () => void;
@@ -11,20 +13,16 @@ export function ErrorBanner({ message, onClose }: ErrorBannerProps) {
   return (
     <div
       role="alert"
-      className="mb-6 flex items-start justify-between gap-3 rounded-md px-4 py-3 text-sm"
-      style={{
-        backgroundColor: 'rgba(248, 81, 73, 0.1)',
-        border: '1px solid rgba(248, 81, 73, 0.4)',
-        color: '#f85149',
-      }}
+      className="flex items-start gap-3 rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-fg"
     >
-      <span>{message}</span>
+      <AlertIcon size={16} className="mt-0.5 flex-shrink-0 text-danger" />
+      <span className="flex-1">{message}</span>
       <button
         onClick={onClose}
-        className="flex-shrink-0 opacity-80 hover:opacity-100"
+        className="flex-shrink-0 text-fg-muted hover:text-fg"
         aria-label="Zamknij komunikat"
       >
-        ✕
+        <XIcon size={16} />
       </button>
     </div>
   );

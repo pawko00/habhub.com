@@ -10,7 +10,7 @@ import {
   DocumentReference,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Habit, HabitCompletion } from '@/types/habit';
+import { Habit, HabitCompletion, HabitPatch } from '@/types/habit';
 
 // Firestore collection names
 const HABITS_COLLECTION = 'habits';
@@ -47,11 +47,12 @@ export const firestoreStorage = {
     await setDoc(habitDoc(userId, habit.id), {
       name: habit.name,
       createdAt: habit.createdAt,
+      ...(habit.color ? { color: habit.color } : {}),
     });
   },
 
-  updateHabitName: async (userId: string, habitId: string, name: string): Promise<void> => {
-    await setDoc(habitDoc(userId, habitId), { name }, { merge: true });
+  updateHabit: async (userId: string, habitId: string, patch: HabitPatch): Promise<void> => {
+    await setDoc(habitDoc(userId, habitId), patch, { merge: true });
   },
 
   removeHabit: async (userId: string, habitId: string): Promise<void> => {
