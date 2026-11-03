@@ -11,11 +11,11 @@ export function generateSampleData(today: Date = new Date()): {
   completions: HabitCompletion[];
 } {
   const habits: Habit[] = [
-    { id: 'habit-1', name: '🏃 Bieganie', createdAt: formatDate(daysAgo(today, 300)) },
-    { id: 'habit-2', name: '📚 Czytanie 30 min', createdAt: formatDate(daysAgo(today, 200)) },
-    { id: 'habit-3', name: '🧘 Medytacja', createdAt: formatDate(daysAgo(today, 120)) },
-    { id: 'habit-4', name: '💧 8 szklanek wody', createdAt: formatDate(daysAgo(today, 60)) },
-    { id: 'habit-5', name: '🛏️ Wstawanie o 6:00', createdAt: formatDate(daysAgo(today, 30)) },
+    { id: 'habit-1', name: 'Bieganie', color: '#f78166', createdAt: formatDate(daysAgo(today, 300)) },
+    { id: 'habit-2', name: 'Czytanie 30 min', color: '#a371f7', createdAt: formatDate(daysAgo(today, 200)) },
+    { id: 'habit-3', name: 'Medytacja', color: '#3fb950', createdAt: formatDate(daysAgo(today, 120)) },
+    { id: 'habit-4', name: '8 szklanek wody', color: '#58a6ff', createdAt: formatDate(daysAgo(today, 60)) },
+    { id: 'habit-5', name: 'Wstawanie o 6:00', color: '#d29922', createdAt: formatDate(daysAgo(today, 30)) },
   ];
 
   const completions: HabitCompletion[] = [];

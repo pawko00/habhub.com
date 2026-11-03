@@ -1,75 +1,65 @@
 @import "tailwindcss";
 
-:root {
-  /* GitHub Dark Theme Colors */
-  --gh-bg-default: #0d1117;
-  --gh-bg-secondary: #161b22;
-  --gh-bg-tertiary: #21262d;
-  --gh-border: #30363d;
-  --gh-border-muted: #21262d;
-  --gh-text-primary: #e6edf3;
-  --gh-text-secondary: #8b949e;
-  --gh-text-muted: #6e7681;
-  --gh-accent: #238636;
-  --gh-accent-emphasis: #2ea043;
-  --gh-link: #58a6ff;
-  --gh-danger: #f85149;
-  
-  /* GitHub Contribution Colors */
-  --gh-contrib-0: #161b22;
-  --gh-contrib-1: #0e4429;
-  --gh-contrib-2: #006d32;
-  --gh-contrib-3: #26a641;
-  --gh-contrib-4: #39d353;
-  
-  --background: var(--gh-bg-default);
-  --foreground: var(--gh-text-primary);
+/* Paleta GitHub Dark (Primer). Klasy Tailwinda: bg-canvas, border-line, text-fg-muted itd. */
+@theme {
+  --color-canvas: #0d1117;
+  --color-canvas-inset: #010409;
+  --color-canvas-subtle: #161b22;
+  --color-canvas-overlay: #21262d;
+  --color-line: #30363d;
+  --color-line-muted: #21262d;
+  --color-fg: #e6edf3;
+  --color-fg-default: #c9d1d9;
+  --color-fg-muted: #8b949e;
+  --color-fg-subtle: #6e7681;
+  --color-accent: #58a6ff;
+  --color-accent-emphasis: #1f6feb;
+  --color-success: #3fb950;
+  --color-success-emphasis: #238636;
+  --color-success-hover: #2ea043;
+  --color-danger: #f85149;
+  --color-attention: #d29922;
+
+  /* Poziomy zieleni mapy aktywności */
+  --color-contrib-0: #161b22;
+  --color-contrib-1: #0e4429;
+  --color-contrib-2: #006d32;
+  --color-contrib-3: #26a641;
+  --color-contrib-4: #39d353;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--gh-bg-default);
-  color: var(--gh-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
 }
 
-/* Custom scrollbar for GitHub look */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--gh-bg-secondary);
+  background: var(--color-canvas-subtle);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--gh-border);
+  background: var(--color-line);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--gh-text-muted);
+  background: var(--color-fg-subtle);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #30363d;
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #484f58;
-}
-

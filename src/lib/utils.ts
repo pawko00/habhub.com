@@ -135,19 +135,6 @@ export function calculateDayStats(
   return { date, completed, total, percentage };
 }
 
-export function getColorForPercentage(percentage: number): string {
-  // GitHub contribution graph colors
-  if (percentage === 0) return 'gh-contrib-0';
-  if (percentage <= 25) return 'gh-contrib-1';
-  if (percentage <= 50) return 'gh-contrib-2';
-  if (percentage <= 75) return 'gh-contrib-3';
-  return 'gh-contrib-4';
-}
-
-export function getColorForCompletion(completed: boolean): string {
-  return completed ? 'gh-contrib-4' : 'gh-contrib-0';
-}
-
 export function generateId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -156,25 +143,47 @@ export function generateId(): string {
          Math.random().toString(36).substring(2, 15);
 }
 
-export function getMonthLabels(dates: string[]): { month: string; weekIndex: number }[] {
-  const labels: { month: string; weekIndex: number }[] = [];
-  const monthNames = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
-  
-  let lastMonth = -1;
-  const weeks = getWeeksArray(dates);
-  
-  weeks.forEach((week, weekIndex) => {
-    const firstValidDate = week.find(d => d !== '');
-    if (firstValidDate) {
-      const date = parseDate(firstValidDate);
-      const month = date.getMonth();
-      
-      if (month !== lastMonth) {
-        labels.push({ month: monthNames[month], weekIndex });
-        lastMonth = month;
-      }
-    }
-  });
-  
-  return labels;
+export interface ActivityStats {
+  totalLastYear: number;
+  currentStreak: number;
+  longestStreak: number;
+  todayCompleted: number;
+  todayTotal: number;
+}
+
+// Podsumowanie wszystkich nawyków: seria liczy dni z co najmniej jednym wykonaniem
+export function calculateActivityStats(
+  habits: Habit[],
+  completions: HabitCompletion[],
+  today: Date = new Date()
+): ActivityStats {
+  const habitIds = new Set(habits.map(h => h.id));
+  const valid = completions.filter(c => habitIds.has(c.habitId));
+  const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate() + 1);
+  const from = formatDate(yearAgo);
+  const todayStr = formatDate(today);
+  const activeDays = [...new Set(valid.map(c => c.date))];
+  const todayStats = calculateDayStats(todayStr, habits, valid);
+
+  return {
+    totalLastYear: valid.filter(c => c.date >= from && c.date <= todayStr).length,
+    currentStreak: calculateStreak(activeDays, today),
+    longestStreak: calculateLongestStreak(activeDays),
+    todayCompleted: todayStats.completed,
+    todayTotal: todayStats.total,
+  };
+}
+
+// "1 dzień", "2 dni", "5 dni"
+export function pluralizeDays(n: number): string {
+  return n === 1 ? '1 dzień' : `${n} dni`;
+}
+
+// Polska odmiana: 1 wykonanie, 2-4 wykonania, 5+ wykonań (z wyjątkiem 12-14)
+export function pluralizeCompletions(n: number): string {
+  if (n === 1) return 'wykonanie';
+  const lastDigit = n % 10;
+  const lastTwo = n % 100;
+  if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) return 'wykonania';
+  return 'wykonań';
 }

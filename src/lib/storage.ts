@@ -1,4 +1,4 @@
-import { Habit, HabitCompletion } from '@/types/habit';
+import { Habit, HabitCompletion, HabitPatch } from '@/types/habit';
 import { generateSampleData } from './sample-data';
 
 const HABITS_KEY = 'habit-tracker-habits';
@@ -40,8 +40,8 @@ export const storage = {
     storage.saveCompletions(storage.getCompletions().filter(c => c.habitId !== habitId));
   },
 
-  updateHabitName: (habitId: string, name: string): void => {
-    storage.saveHabits(storage.getHabits().map(h => (h.id === habitId ? { ...h, name } : h)));
+  updateHabit: (habitId: string, patch: HabitPatch): void => {
+    storage.saveHabits(storage.getHabits().map(h => (h.id === habitId ? { ...h, ...patch } : h)));
   },
 
   setCompletion: (habitId: string, date: string, completed: boolean): void => {

@@ -1,107 +1,80 @@
 'use client';
 
 import { useState } from 'react';
+import { HABIT_COLORS } from '@/lib/habit-colors';
 
 interface AddHabitFormProps {
-  onAdd: (name: string) => unknown;
+  initialColor: string;
+  onAdd: (name: string, color: string) => unknown;
+  onCancel: () => void;
 }
 
-export function AddHabitForm({ onAdd }: AddHabitFormProps) {
+export function AddHabitForm({ initialColor, onAdd, onCancel }: AddHabitFormProps) {
   const [name, setName] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+  const [color, setColor] = useState(initialColor);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      onAdd(name.trim());
-      setName('');
-      setIsOpen(false);
-    }
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onAdd(trimmed, color);
+    onCancel();
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-        style={{ 
-          backgroundColor: '#238636',
-          color: '#ffffff',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#2ea043';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#238636';
-        }}
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        Nowy nawyk
-      </button>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-line-muted px-4 py-3">
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Nazwa nawyku..."
+        onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+        placeholder="Czytanie 20 minut"
         maxLength={100}
-        aria-label="Nazwa nawyku"
         autoFocus
-        className="flex-1 min-w-0 px-3 py-1.5 rounded-md text-sm outline-none"
-        style={{
-          backgroundColor: '#0d1117',
-          border: '1px solid #30363d',
-          color: '#e6edf3',
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = '#58a6ff';
-          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(88, 166, 255, 0.3)';
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = '#30363d';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
+        aria-label="Nazwa nawyku"
+        className="w-full rounded-md border border-line bg-canvas px-3 py-1.5 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
       />
-      <button
-        type="submit"
-        className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-        style={{ 
-          backgroundColor: '#238636',
-          color: '#ffffff',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#2ea043';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#238636';
-        }}
-      >
-        Dodaj
-      </button>
-      <button
-        type="button"
-        onClick={() => setIsOpen(false)}
-        className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-        style={{
-          backgroundColor: '#21262d',
-          color: '#c9d1d9',
-          border: '1px solid #30363d',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#30363d';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#21262d';
-        }}
-      >
-        Anuluj
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ColorPicker value={color} onChange={setColor} />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-line bg-canvas-overlay px-3 py-1 text-sm text-fg-default hover:border-fg-subtle"
+          >
+            Anuluj
+          </button>
+          <button
+            type="submit"
+            className="rounded-md border border-white/10 bg-success-emphasis px-3 py-1 text-sm font-medium text-white hover:bg-success-hover"
+          >
+            Dodaj nawyk
+          </button>
+        </div>
+      </div>
     </form>
+  );
+}
+
+export function ColorPicker({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Kolor nawyku" className="flex items-center gap-1.5">
+      {HABIT_COLORS.map(c => (
+        <button
+          key={c.value}
+          type="button"
+          role="radio"
+          aria-checked={value === c.value}
+          aria-label={c.label}
+          title={c.label}
+          onClick={() => onChange(c.value)}
+          className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+            value === c.value ? 'border-fg-muted' : 'border-transparent hover:border-line'
+          }`}
+        >
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.value }} />
+        </button>
+      ))}
+    </div>
   );
 }
